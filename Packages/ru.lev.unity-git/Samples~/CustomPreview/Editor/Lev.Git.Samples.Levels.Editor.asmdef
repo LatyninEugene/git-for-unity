@@ -1,0 +1,27 @@
+{
+    "name": "Lev.Git.Samples.Levels.Editor",
+    "rootNamespace": "Lev.Git.Samples.Levels.Editor",
+    "references": [
+        "Lev.Git.Samples.Levels",
+        "Lev.Git.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "LEV_GIT"
+    ],
+    "versionDefines": [
+        {
+            "name": "ru.lev.unity-git",
+            "expression": "1.0.0-alpha.1",
+            "define": "LEV_GIT"
+        }
+    ],
+    "noEngineReferences": false
+}

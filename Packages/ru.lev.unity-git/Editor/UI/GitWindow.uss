@@ -1,0 +1,1716 @@
+/* =========================================================================
+   Визуальный язык окна.
+
+   Токены объявлены дважды — под тёмный и светлый скин редактора. Класс
+   theme-dark / theme-light ставится на корень в C# по EditorGUIUtility.isProSkin;
+   отдельного «системного» состояния у редактора нет, поэтому двух наборов хватает.
+
+   Правило: ни один цвет не задаётся в правилах компонентов напрямую, только
+   через var(). Иначе второй скин чинится по одному месту за раз.
+   ========================================================================= */
+
+.theme-dark {
+    --g-bg: rgb(48, 48, 48);
+    --g-panel: rgb(56, 56, 56);
+    --g-panel-2: rgb(42, 42, 42);
+    --g-border: rgb(30, 30, 30);
+    --g-border-soft: rgb(66, 66, 66);
+
+    --g-text: rgb(210, 210, 210);
+    --g-text-dim: rgb(150, 150, 150);
+    --g-text-faint: rgb(112, 112, 112);
+
+    --g-accent: rgb(62, 106, 168);
+    --g-accent-text: rgb(235, 240, 248);
+    --g-hover: rgb(66, 66, 66);
+
+    /* Тона git-статуса здесь НЕ объявлены: они живут в GitPalette и ставятся
+       инлайном, потому что те же значения нужны меткам в окне Project на IMGUI.
+       Ниже — только смысловые тона самого интерфейса. */
+    --g-ok: rgb(107, 204, 128);
+    --g-warn: rgb(224, 179, 65);
+    --g-error: rgb(229, 105, 94);
+}
+
+.theme-light {
+    --g-bg: rgb(200, 200, 200);
+    --g-panel: rgb(211, 211, 211);
+    --g-panel-2: rgb(190, 190, 190);
+    --g-border: rgb(150, 150, 150);
+    --g-border-soft: rgb(178, 178, 178);
+
+    --g-text: rgb(28, 28, 28);
+    --g-text-dim: rgb(88, 88, 88);
+    --g-text-faint: rgb(124, 124, 124);
+
+    --g-accent: rgb(58, 114, 190);
+    --g-accent-text: rgb(255, 255, 255);
+    --g-hover: rgb(190, 190, 190);
+
+    --g-ok: rgb(28, 122, 62);
+    --g-warn: rgb(150, 105, 12);
+    --g-error: rgb(178, 46, 38);
+}
+
+/* min-height: 0 по всей вертикальной цепочке — обязателен.
+   У флекс-элемента min-height по умолчанию auto: элемент отказывается сжиматься
+   меньше своего содержимого. Список на 470 строк из-за этого выдавливает шапку
+   и панель коммита за границы окна, вместо того чтобы прокручиваться внутри себя. */
+.root {
+    flex-grow: 1;
+    min-height: 0;
+    background-color: var(--g-bg);
+    color: var(--g-text);
+}
+
+/* Всё, что обязано быть видно всегда, сжиматься не имеет права. */
+.header, .job, .tabs, .subbar, .commit, .status-line, .act {
+    flex-shrink: 0;
+}
+
+/* Единственный растяжимый элемент в панели — сам список. */
+.list {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+/* ------------------------------------------------------------- шапка --- */
+
+.header {
+    flex-direction: row;
+    align-items: center;
+    height: 34px;
+    padding-left: 8px;
+    padding-right: 6px;
+    background-color: var(--g-panel);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--g-border);
+}
+
+.branch-pill {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+    padding-left: 8px;
+    padding-right: 6px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: var(--g-border-soft);
+    background-color: var(--g-panel-2);
+}
+
+.branch-pill:hover { background-color: var(--g-hover); }
+
+.branch-pill__name {
+    -unity-font-style: bold;
+    font-size: 11px;
+    color: var(--g-text);
+}
+
+.branch-pill__track {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    margin-left: 6px;
+}
+
+.branch-pill__caret {
+    font-size: 9px;
+    color: var(--g-text-faint);
+    margin-left: 5px;
+}
+
+.header__repo {
+    font-size: 11px;
+    color: var(--g-text-dim);
+    margin-left: 10px;
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.header__spacer { flex-grow: 1; }
+
+/* background-image: none — у кнопки редактора своя фоновая картинка из скина,
+   и без сброса она проступает сквозь наш background-color. */
+.act {
+    background-image: none;
+    height: 20px;
+    min-width: 22px;
+    padding-left: 8px;
+    padding-right: 8px;
+    margin-left: 3px;
+    font-size: 11px;
+    border-radius: 3px;
+    border-width: 1px;
+    border-color: var(--g-border-soft);
+    background-color: var(--g-panel-2);
+    color: var(--g-text);
+}
+
+.act:hover { background-color: var(--g-hover); }
+.act:disabled { opacity: 0.45; }
+
+.act--primary {
+    background-color: var(--g-accent);
+    border-color: var(--g-accent);
+    color: var(--g-accent-text);
+    -unity-font-style: bold;
+}
+
+/* ------------------------------------------------- полоса операции --- */
+
+.job {
+    flex-direction: row;
+    align-items: center;
+    height: 24px;
+    padding-left: 8px;
+    padding-right: 6px;
+    background-color: var(--g-panel-2);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--g-border);
+}
+
+.job__title {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: var(--g-text);
+}
+
+.job__progress {
+    font-size: 11px;
+    color: var(--g-text-dim);
+    margin-left: 8px;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+/* --------------------------------------------------------- вкладки --- */
+
+.tabs {
+    flex-direction: row;
+    height: 26px;
+    background-color: var(--g-panel);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--g-border);
+}
+
+.tab {
+    background-image: none;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 11px;
+    padding-right: 11px;
+    border-bottom-width: 2px;
+    border-bottom-color: rgba(0, 0, 0, 0);
+    background-color: rgba(0, 0, 0, 0);
+    border-top-width: 0;
+    border-left-width: 0;
+    border-right-width: 0;
+    margin: 0;
+    color: var(--g-text-dim);
+    font-size: 11px;
+}
+
+.tab:hover { color: var(--g-text); }
+
+.tab--active {
+    color: var(--g-text);
+    -unity-font-style: bold;
+    border-bottom-color: var(--g-accent);
+}
+
+.tab__badge {
+    min-width: 15px;
+    height: 14px;
+    margin-left: 6px;
+    padding-left: 4px;
+    padding-right: 4px;
+    border-radius: 7px;
+    font-size: 9px;
+    -unity-text-align: middle-center;
+    background-color: var(--g-border-soft);
+    color: var(--g-text);
+}
+
+.tab__badge--alert {
+    background-color: var(--g-error);
+    color: rgb(255, 255, 255);
+}
+
+/* ------------------------------------------------------- раскладка --- */
+
+.body {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+/* Панели внутри TwoPaneSplitView намеренно БЕЗ flex-grow: сплиттер сам ставит
+   ширину закреплённой панели и flex-grow подвижной. Правило из таблицы стилей
+   применилось бы к обеим, и закреплённая панель перестала бы держать ширину. */
+.pane {
+    min-height: 0;
+    background-color: var(--g-bg);
+}
+
+.pane--detail {
+    background-color: var(--g-panel-2);
+    border-left-width: 1px;
+    border-left-color: var(--g-border);
+}
+
+.subbar {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding-left: 6px;
+    padding-right: 4px;
+    background-color: var(--g-panel);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--g-border-soft);
+}
+
+.subbar__label {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    margin-right: 8px;
+}
+
+/* ----------------------------------------------- строки и группы --- */
+
+.group {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 22px;
+    padding-left: 6px;
+    background-color: var(--g-panel-2);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--g-border-soft);
+}
+
+.group__arrow {
+    width: 12px;
+    font-size: 9px;
+    color: var(--g-text-faint);
+}
+
+.group__title {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: var(--g-text-dim);
+}
+
+.group__count {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    margin-left: 6px;
+}
+
+.group__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    margin-right: 6px;
+}
+
+.row {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 22px;
+    padding-right: 6px;
+}
+
+.row:hover { background-color: var(--g-hover); }
+
+/* Галочка «уйдёт в коммит». Отступы у Toggle из скина редактора великоваты
+   для строки в 22 px, поэтому сбрасываем их полностью. */
+.check {
+    margin: 0;
+    padding: 0;
+    flex-shrink: 0;
+    width: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+.check > .unity-toggle__input {
+    flex-grow: 0;
+    margin: 0;
+}
+
+.check .unity-toggle__checkmark {
+    margin: 0;
+    width: 13px;
+    height: 13px;
+}
+
+/* Отмечена часть группы. Своего «неопределённого» состояния у Toggle нет —
+   рисуем вместо галочки залитый квадрат, привычный вид для этого случая. */
+.check--partial .unity-toggle__checkmark {
+    background-image: none;
+    background-color: var(--g-accent);
+}
+
+.badge {
+    width: 16px;
+    height: 15px;
+    border-radius: 3px;
+    margin-right: 6px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: rgb(0, 0, 0);
+}
+
+.row__icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+}
+
+/* Имя ассета важнее пути: при нехватке ширины первым сжимается путь.
+   Без flex-shrink: 0 съедалось как раз имя, а путь занимал всю строку. */
+.row__name {
+    font-size: 11px;
+    color: var(--g-text);
+    flex-shrink: 0;
+    max-width: 62%;
+    overflow: hidden;
+}
+
+.row__dir {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    margin-left: 8px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.row__meta {
+    font-size: 9px;
+    color: var(--g-text-faint);
+    margin-left: 6px;
+}
+
+/* Смысловые тона подписей. Цвет git-статуса ставится инлайном из GitPalette. */
+.t-ok    { color: var(--g-ok); }
+.t-warn  { color: var(--g-warn); }
+.t-error { color: var(--g-error); }
+.t-dim   { color: var(--g-text-faint); }
+
+/* ------------------------------------------------------ детали --- */
+
+.detail { padding: 10px; }
+
+.detail__title {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.detail__name {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: var(--g-text);
+    margin-left: 6px;
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.detail__path {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    margin-bottom: 10px;
+    white-space: normal;
+}
+
+.kv {
+    flex-direction: row;
+    align-items: center;
+    min-height: 18px;
+}
+
+.kv__k {
+    width: 104px;
+    font-size: 10px;
+    color: var(--g-text-faint);
+    flex-shrink: 0;
+}
+
+.kv__v {
+    font-size: 11px;
+    color: var(--g-text);
+    flex-shrink: 1;
+    overflow: hidden;
+    white-space: normal;
+}
+
+.card {
+    background-color: var(--g-panel);
+    border-width: 1px;
+    border-color: var(--g-border-soft);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+.card__head {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: var(--g-text-dim);
+    margin-bottom: 7px;
+}
+
+.slot {
+    flex-grow: 1;
+    min-height: 60px;
+    margin-top: 10px;
+    border-width: 1px;
+    border-color: var(--g-border-soft);
+    border-radius: 4px;
+    align-items: center;
+    justify-content: center;
+}
+
+.slot__text {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+/* ------------------------------------------------------- пустое --- */
+
+.empty {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.empty__title {
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: var(--g-text-dim);
+    margin-bottom: 4px;
+}
+
+.empty__hint {
+    font-size: 11px;
+    color: var(--g-text-faint);
+    -unity-text-align: middle-center;
+    white-space: normal;
+    max-width: 320px;
+}
+
+/* --------------------------------------------------- коммит-панель --- */
+
+.commit {
+    border-top-width: 1px;
+    border-top-color: var(--g-border);
+    background-color: var(--g-panel);
+    padding: 6px;
+}
+
+.commit__field {
+    min-height: 46px;
+    margin: 0 0 6px 0;
+}
+
+.commit__field > .unity-text-field__input {
+    background-color: var(--g-panel-2);
+    border-color: var(--g-border-soft);
+    border-radius: 3px;
+    font-size: 11px;
+    padding: 4px;
+}
+
+/* Кнопки коммита переносятся на новую строку, когда ширины не хватает.
+   Без переноса они просто уезжали за край панели и становились недоступны. */
+.commit__bar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* Подсказка делит строку с кнопкой параметров и сжимается первой. */
+.commit__meta {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-bottom: 5px;
+}
+
+.commit__summary {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    white-space: normal;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    margin-right: 6px;
+}
+
+/* ---------------------------------------------------------- прочее --- */
+
+/* Высота по содержимому: сообщения git бывают в две-три строки, а обрезанная
+   ошибка бесполезна — именно из-за неё непонятно, что произошло. */
+.status-line {
+    flex-direction: row;
+    align-items: flex-start;
+    min-height: 20px;
+    max-height: 76px;
+    padding: 3px 8px 3px 8px;
+    background-color: var(--g-panel);
+    border-top-width: 1px;
+    border-top-color: var(--g-border);
+}
+
+.status-line__text {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    flex-grow: 1;
+    flex-shrink: 1;
+    white-space: normal;
+}
+
+.status-line__text--error { color: var(--g-error); }
+
+.banner {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    border-radius: 3px;
+    border-left-width: 3px;
+    background-color: var(--g-panel);
+}
+
+.banner--warn { border-left-color: var(--g-warn); }
+.banner--error { border-left-color: var(--g-error); }
+.banner--info { border-left-color: var(--g-accent); }
+
+.banner__text {
+    font-size: 11px;
+    color: var(--g-text);
+    white-space: normal;
+    flex-shrink: 1;
+}
+
+/* ============================================================= diff ====== */
+
+.diff {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.diff__stats {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    margin-right: 4px;
+}
+
+/* Заголовок хунка: якорь, по которому глаз находит границу фрагмента. */
+.hunk {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 18px;
+    padding-left: 6px;
+    padding-right: 4px;
+    background-color: var(--g-panel);
+    border-top-width: 1px;
+    border-top-color: var(--g-border-soft);
+}
+
+.hunk__title {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.hunk .act {
+    height: 15px;
+    font-size: 9px;
+    padding-left: 5px;
+    padding-right: 5px;
+    margin-left: 2px;
+}
+
+/* Строка diff. Высота фиксирована — на ней держится виртуализация списка. */
+.dline {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 18px;
+}
+
+.dline__no {
+    width: 34px;
+    flex-shrink: 0;
+    font-size: 9px;
+    color: var(--g-text-faint);
+    -unity-text-align: middle-right;
+    padding-right: 5px;
+}
+
+/* Контейнер строки: три отрезка текста подряд, средний подсвечен. */
+.dline__text {
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 1;
+    overflow: hidden;
+    padding-left: 4px;
+}
+
+.dline__seg {
+    font-size: 11px;
+    color: var(--g-text);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Изменившийся кусок строки. Заливка плотнее, чем у всей строки, — на её фоне
+   и должно быть видно, что именно правили. */
+.dline__seg--mark {
+    background-color: rgba(230, 90, 80, 0.34);
+    border-radius: 2px;
+}
+
+.dline__seg--mark-add {
+    background-color: rgba(80, 200, 120, 0.34);
+}
+
+.theme-light .dline__seg--mark { background-color: rgba(200, 60, 50, 0.30); }
+.theme-light .dline__seg--mark-add { background-color: rgba(40, 160, 80, 0.32); }
+
+/* Заливка строки, а не цвет текста: так плюс и минус видно боковым зрением,
+   и код остаётся читаемым обычным цветом. */
+.dline--add { background-color: rgba(80, 200, 120, 0.16); }
+.dline--del { background-color: rgba(230, 90, 80, 0.16); }
+
+.theme-light .dline--add { background-color: rgba(40, 160, 80, 0.20); }
+.theme-light .dline--del { background-color: rgba(200, 60, 50, 0.18); }
+
+/* Тумблер amend в панели коммита: подпись слева, компактная высота строки. */
+.amend {
+    margin: 0;
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--g-text-dim);
+}
+
+.amend .unity-toggle__checkmark {
+    width: 12px;
+    height: 12px;
+    margin-right: 4px;
+}
+
+.amend > .unity-toggle__input {
+    flex-grow: 0;
+}
+
+/* Флажок с тремя состояниями: галочка, прочерк, пусто. */
+.tri {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    margin-left: 6px;
+    margin-right: 6px;
+    border-width: 1px;
+    border-color: var(--g-border-soft);
+    border-radius: 2px;
+    background-color: var(--g-panel-2);
+    align-items: center;
+    justify-content: center;
+}
+
+.tri:hover { border-color: var(--g-accent); }
+
+.tri--on {
+    background-color: var(--g-accent);
+    border-color: var(--g-accent);
+}
+
+.tri__mark {
+    font-size: 10px;
+    -unity-font-style: bold;
+    color: var(--g-accent-text);
+    -unity-text-align: middle-center;
+}
+
+/* Статистика фрагмента справа от заголовка. */
+.hunk__stats {
+    font-size: 9px;
+    color: var(--g-text-faint);
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+/* Флажок внутри строки заголовка фрагмента — компактнее, чем в списке файлов. */
+.hunk .tri {
+    margin-left: 2px;
+    margin-right: 5px;
+}
+
+/* Флажок на строке diff: уже и без внешних отступов, чтобы номера строк
+   не сдвигались относительно заголовка фрагмента. */
+.tri--line {
+    width: 11px;
+    height: 11px;
+    margin-left: 4px;
+    margin-right: 3px;
+}
+
+.tri--line > .tri__mark {
+    font-size: 8px;
+}
+
+/* Строка папки в дереве изменений. */
+.row--folder {
+    background-color: var(--g-panel-2);
+}
+
+.row--folder:hover {
+    background-color: var(--g-hover);
+}
+
+.row--folder .row__name {
+    color: var(--g-text-dim);
+    max-width: 78%;
+}
+
+.row--folder .row__dir {
+    -unity-text-align: middle-right;
+    margin-right: 4px;
+}
+
+/* Факты «ключ: значение» в строку, с переносом по ширине панели. */
+.facts {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.fact {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 14px;
+    flex-shrink: 0;
+}
+
+.fact__k {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    margin-right: 4px;
+}
+
+.fact__v {
+    font-size: 11px;
+    color: var(--g-text);
+}
+
+/* Поля с flex-grow обязаны уметь сжиматься до нуля: у элементов редактора
+   своя минимальная ширина, и из-за неё соседние кнопки уезжали за край. */
+.subbar > .unity-toolbar-search-field {
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+/* ============================ семантическая разница сцены ============== */
+
+.sline {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 18px;
+}
+
+.sline__sign {
+    width: 20px;
+    margin-left: 4px;
+    margin-right: 4px;
+    font-size: 12px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    flex-shrink: 0;
+}
+
+.sline__arrow {
+    width: 14px;
+    font-size: 10px;
+    color: var(--g-text-dim);
+    -unity-text-align: middle-center;
+    flex-shrink: 0;
+}
+
+.sline__icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 3px;
+    flex-shrink: 0;
+}
+
+.sline__title {
+    font-size: 12px;
+    color: var(--g-text);
+    flex-shrink: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.sline__title--context { color: var(--g-text-faint); }
+.sline__title--removed { color: var(--g-text-faint); }
+.sline__detail {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    margin-left: 10px;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.sline__note {
+    font-size: 9px;
+    color: var(--g-text-faint);
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.sprop {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 18px;
+}
+
+.sprop__path {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    flex-shrink: 1;
+    overflow: hidden;
+    margin-right: 8px;
+}
+
+.sprop__old {
+    font-size: 10px;
+    color: var(--g-error);
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.sprop__arrow {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    margin-left: 5px;
+    margin-right: 5px;
+    flex-shrink: 0;
+}
+
+.sprop__new {
+    font-size: 10px;
+    color: var(--g-ok);
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+/* ============================ превью ассета до и после ================= */
+
+.preview {
+    flex-shrink: 0;
+    border-top-width: 1px;
+    border-top-color: var(--g-border-soft);
+    padding: 6px;
+}
+
+.preview__bar {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    margin-bottom: 3px;
+}
+
+/* Вторая строка — инструменты вкладки «Вид»: режимы, каналы, лупа, звук. */
+.preview__tools {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    margin-bottom: 3px;
+}
+
+/* ---- миниатюры версий ---- */
+
+/* «Было» рядом с «стало» в строке файла — чуть приглушено. */
+.row__icon--before {
+    opacity: 0.7;
+    margin-right: 1px;
+}
+
+.thread__thumb {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    margin-right: 6px;
+    border-radius: 3px;
+    background-color: var(--g-panel-2);
+    cursor: link;
+}
+
+.sprop__swatch {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+    margin-right: 3px;
+    border-width: 1px;
+    border-color: var(--g-border);
+    border-radius: 2px;
+    align-self: center;
+}
+
+.sprop__icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-right: 2px;
+    align-self: center;
+}
+
+/* ---- окно «История ассета» ---- */
+
+.ahist__row {
+    flex-direction: row;
+    align-items: center;
+    height: 46px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.ahist__thumb {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    margin-right: 8px;
+    border-radius: 3px;
+    background-color: var(--g-panel-2);
+}
+
+.ahist__text {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.ahist__title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--g-text);
+}
+
+.ahist__meta {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Выбор варианта показа: кривая клипа, слой аниматора. */
+.preview__choice {
+    min-width: 180px;
+    max-width: 380px;
+    flex-shrink: 1;
+    margin-left: 0;
+    margin-right: 8px;
+}
+
+.preview__slider {
+    width: 90px;
+    margin-left: 0;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.preview__time {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    margin-right: 8px;
+    -unity-font-style: normal;
+}
+
+/* Список изменений без картинки над ним — занимает всю высоту. */
+.pchanges--fill {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.pchanges--fill > .pchanges__scroll {
+    max-height: none;
+    flex-grow: 1;
+}
+
+/* Группа кнопок-переключателей: вкладки, режимы, формы. */
+.preview__group {
+    flex-direction: row;
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+.preview__group > .act {
+    margin-left: 0;
+    border-radius: 0;
+}
+
+/* Псевдоклассов :first-child и :last-child в USS нет — края группы отмечает
+   Ui.ButtonGroup классами act--first и act--last. */
+.preview__group > .act--first {
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+.preview__group > .act--last {
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+
+.preview__note {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    white-space: normal;
+    margin-bottom: 4px;
+}
+
+/* На вкладках «Вид» и «Инспектор» diff спрятан — превью занимает всю высоту. */
+.preview__body {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.preview__view {
+    flex-grow: 1;
+    min-height: 120px;
+    border-width: 1px;
+    border-color: var(--g-border-soft);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.preview__aligned {
+    flex-grow: 1;
+    min-height: 120px;
+    border-width: 1px;
+    border-color: var(--g-border-soft);
+    border-radius: 3px;
+    padding: 4px;
+    overflow: hidden;
+}
+
+.preview__inspector {
+    flex-direction: row;
+    flex-grow: 1;
+    min-height: 120px;
+    border-width: 1px;
+    border-color: var(--g-border-soft);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+/* Колонка инспектора — отдельная область IMGUI со своим левым краем. */
+.preview__column {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+    padding: 4px;
+    overflow: hidden;
+}
+
+.preview__column--right {
+    border-left-width: 1px;
+    border-left-color: var(--g-border);
+}
+
+/* ---- список изменений ассета словами инспектора ---- */
+
+.pchanges {
+    flex-shrink: 0;
+    margin-top: 6px;
+}
+
+.pchanges__head {
+    flex-direction: row;
+    align-items: center;
+    height: 18px;
+}
+
+.pchanges__title {
+    font-size: 10px;
+    -unity-font-style: bold;
+    color: var(--g-text-dim);
+}
+
+.pchanges__head > .act {
+    height: 16px;
+    font-size: 10px;
+}
+
+.pchanges__scroll {
+    max-height: 130px;
+}
+
+.pchange {
+    flex-direction: row;
+    align-items: center;
+    min-height: 18px;
+    padding-left: 2px;
+    padding-right: 4px;
+    border-radius: 2px;
+}
+
+.pchange:hover {
+    background-color: var(--g-hover);
+}
+
+.pchange--nested {
+    padding-left: 14px;
+}
+
+.pchange--hidden > .pchange__label {
+    color: var(--g-text-faint);
+}
+
+.pchange__grouprow {
+    flex-direction: row;
+    align-items: center;
+}
+
+/* Пометка обсуждений в merge request: «💬 2», по клику — к обсуждению. */
+.pchanges__comments {
+    font-size: 10px;
+    color: var(--g-accent);
+    margin-left: 8px;
+    padding-left: 4px;
+    padding-right: 4px;
+    border-radius: 3px;
+}
+
+.pchanges__comments:hover {
+    background-color: var(--g-hover);
+}
+
+.pchange__group {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    -unity-font-style: bold;
+    margin-top: 4px;
+    padding-left: 2px;
+}
+
+.pchange__label {
+    width: 36%;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--g-text);
+}
+
+.pchange__value {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 30%;
+}
+
+.pchange__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-font-style: normal;
+}
+
+.pchange__old > .pchange__text {
+    color: var(--g-error);
+}
+
+.pchange__new > .pchange__text {
+    color: var(--g-ok);
+}
+
+.pchange__arrow {
+    color: var(--g-text-faint);
+    margin-left: 4px;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.pchange__swatch {
+    width: 12px;
+    height: 12px;
+    margin-right: 4px;
+    border-width: 1px;
+    border-color: var(--g-border);
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.pchange__icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 3px;
+    flex-shrink: 0;
+}
+
+.pchange__note {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    margin-left: 8px;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ==================================================================== */
+/* История                                                              */
+/* ==================================================================== */
+
+.history {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+/* Полоса отбора. flex-wrap обязателен: на узкой панели поля переносятся
+   на вторую строку, а не уезжают за край вместе с кнопкой «Обновить». */
+.hfilter {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 4px 6px;
+    background-color: var(--g-panel);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--g-border);
+}
+
+.hfilter > * { margin-right: 4px; margin-top: 1px; margin-bottom: 1px; }
+
+.hfilter__search {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 90px;
+    max-width: 320px;
+}
+
+.hfilter__summary {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    flex-shrink: 0;
+}
+
+.chip--clear { flex-shrink: 0; }
+
+.history__list { flex-grow: 1; min-height: 0; }
+/* Без flex-grow: разбор коммита — закреплённая панель сплиттера, высоту ей
+   задаёт он. Растягивание из таблицы стилей перебило бы перетаскивание. */
+.history__detail { min-height: 0; }
+
+/* Строка журнала. Высота фиксирована — на ней держится виртуализация. */
+.crow {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding-right: 6px;
+}
+
+.crow__subject {
+    font-size: 11px;
+    color: var(--g-text);
+    flex-shrink: 1;
+    overflow: hidden;
+    margin-left: 4px;
+}
+
+.crow--merge .crow__subject { color: var(--g-text-dim); }
+
+.crow__author {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.crow__date {
+    font-size: 10px;
+    color: var(--g-text-faint);
+    flex-shrink: 0;
+    margin-left: 8px;
+    width: 78px;
+    -unity-text-align: middle-right;
+}
+
+/* Ярлыки веток и тегов. */
+.crow__refs {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
+.refchip {
+    font-size: 9px;
+    padding: 0 4px;
+    margin-right: 3px;
+    border-radius: 3px;
+    border-width: 1px;
+    height: 14px;
+    -unity-text-align: middle-center;
+    flex-shrink: 0;
+}
+
+.refchip--local {
+    color: rgb(120, 180, 250);
+    border-color: rgba(120, 180, 250, 0.5);
+    background-color: rgba(120, 180, 250, 0.12);
+}
+
+.refchip--remote {
+    color: rgb(160, 165, 175);
+    border-color: rgba(160, 165, 175, 0.45);
+    background-color: rgba(160, 165, 175, 0.10);
+}
+
+.refchip--tag {
+    color: rgb(230, 190, 110);
+    border-color: rgba(230, 190, 110, 0.5);
+    background-color: rgba(230, 190, 110, 0.12);
+}
+
+.refchip--head {
+    color: rgb(200, 200, 200);
+    border-color: rgba(200, 200, 200, 0.4);
+}
+
+/* Текущая ветка выделяется плотностью, а не ещё одним цветом: цветов в
+   строке и так три. */
+.refchip--current {
+    -unity-font-style: bold;
+    background-color: rgba(120, 180, 250, 0.26);
+}
+
+.theme-light .refchip--local {
+    color: rgb(30, 90, 180);
+    border-color: rgba(30, 90, 180, 0.45);
+    background-color: rgba(30, 90, 180, 0.10);
+}
+
+.theme-light .refchip--remote { color: rgb(95, 100, 110); }
+.theme-light .refchip--tag { color: rgb(150, 105, 20); }
+
+/* Разбор коммита. */
+.cdetail {
+    padding: 8px 10px 6px 10px;
+    flex-shrink: 0;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--g-border);
+}
+
+.cdetail__title {
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: var(--g-text);
+    white-space: normal;
+}
+
+.cdetail__meta {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    margin-top: 2px;
+}
+
+.cdetail__message {
+    font-size: 11px;
+    color: var(--g-text-dim);
+    white-space: normal;
+    margin-top: 5px;
+    padding-left: 7px;
+    border-left-width: 2px;
+    border-left-color: var(--g-border);
+    max-height: 90px;
+}
+
+/* Кнопки действий переносятся на вторую строку вместо того, чтобы
+   исчезать за краем узкой панели. */
+.cdetail__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.cdetail__actions > * { margin-right: 4px; margin-top: 1px; margin-bottom: 1px; }
+
+/* Флажок с подписью в полосе над списком файлов. */
+.subbar__toggle {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 6px;
+}
+
+.subbar__check {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    margin-left: 2px;
+}
+
+.subbar__check:hover { color: var(--g-text); }
+
+/* Боковая панель веток слева от журнала. */
+.bside {
+    border-right-width: 1px;
+    border-right-color: var(--g-border);
+}
+
+.bside__bar {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 26px;
+    padding-left: 4px;
+    padding-right: 3px;
+    background-color: var(--g-panel);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--g-border);
+}
+
+.bside__search {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    margin: 0 2px 0 0;
+}
+
+/* Кнопка-значок: ширина фиксирована и не сжимается, иначе на узкой панели
+   первой пропала бы именно она. */
+.act--icon {
+    flex-shrink: 0;
+    width: 22px;
+    min-width: 22px;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 2px;
+    align-items: center;
+    justify-content: center;
+}
+
+.act__icon {
+    width: 14px;
+    height: 14px;
+}
+
+.bsection {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 8px 8px 3px 8px;
+}
+
+.bsection__title {
+    font-size: 9px;
+    color: var(--g-text-faint);
+    -unity-font-style: bold;
+    flex-grow: 1;
+}
+
+.bsection__count {
+    font-size: 9px;
+    color: var(--g-text-faint);
+}
+
+.brow {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 22px;
+    padding-left: 2px;
+    padding-right: 3px;
+}
+
+.brow:hover { background-color: var(--g-hover); }
+
+.brow--selected { background-color: rgba(62, 125, 231, 0.32); }
+.brow--selected:hover { background-color: rgba(62, 125, 231, 0.40); }
+.theme-light .brow--selected { background-color: rgba(62, 125, 231, 0.22); }
+
+.brow__head {
+    width: 12px;
+    flex-shrink: 0;
+    font-size: 8px;
+    color: var(--g-accent);
+    -unity-text-align: middle-center;
+}
+
+/* Имя сжимается первым и обрезается многоточием: счётчики и кнопка меню
+   справа должны оставаться на месте при любой ширине панели. */
+.brow__name {
+    font-size: 11px;
+    color: var(--g-text);
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.brow--current .brow__name { -unity-font-style: bold; }
+.brow--all .brow__name { color: var(--g-text-dim); }
+
+.brow__track {
+    font-size: 9px;
+    color: var(--g-text-dim);
+    flex-shrink: 0;
+    margin-left: 5px;
+}
+
+.brow__gone {
+    font-size: 11px;
+    color: rgb(230, 160, 90);
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+
+/* ------------------------------------------- значки интеграций у веток --- */
+
+.brow__mr {
+    font-size: 9px;
+    height: 14px;
+    padding: 0 4px;
+    margin-left: 5px;
+    border-radius: 3px;
+    border-width: 1px;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+    color: rgb(110, 200, 140);
+    border-color: rgba(110, 200, 140, 0.5);
+    background-color: rgba(110, 200, 140, 0.10);
+}
+
+.brow__mr:hover { background-color: rgba(110, 200, 140, 0.25); }
+
+.refchip--mr {
+    color: rgb(110, 200, 140);
+    border-color: rgba(110, 200, 140, 0.5);
+    background-color: rgba(110, 200, 140, 0.12);
+}
+
+.theme-light .brow__mr,
+.theme-light .refchip--mr {
+    color: rgb(30, 125, 65);
+    border-color: rgba(30, 125, 65, 0.45);
+    background-color: rgba(30, 125, 65, 0.08);
+}
+
+/* ------------------------------------------------------------ ревью --- */
+
+/* Пометка «есть обсуждение» у строки diff и у объекта сцены. */
+.dline__note {
+    font-size: 9px;
+    height: 14px;
+    padding: 0 4px;
+    margin-left: 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+    color: var(--g-text);
+    background-color: rgba(230, 190, 110, 0.28);
+}
+
+.dline__note:hover { background-color: rgba(230, 190, 110, 0.5); }
+
+.modebar {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 3px 6px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(128, 128, 128, 0.25);
+}
+
+.thread {
+    margin: 6px 8px 0 8px;
+    padding: 6px 8px;
+    border-radius: 3px;
+    border-left-width: 3px;
+    border-left-color: var(--g-warn);
+    background-color: var(--g-panel);
+    flex-shrink: 0;
+}
+
+.thread--general { border-left-color: var(--g-accent); }
+.thread--resolved { border-left-color: rgba(128, 128, 128, 0.5); }
+.thread--focus { background-color: var(--g-hover); }
+
+.thread__head {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+}
+
+.thread__anchor {
+    font-size: 10px;
+    color: var(--g-text-dim);
+    flex-shrink: 1;
+    white-space: normal;
+}
+
+.thread__state {
+    font-size: 10px;
+    margin-left: 6px;
+    color: var(--g-text-dim);
+}
+
+.note { margin-top: 5px; }
+
+.note__meta {
+    font-size: 10px;
+    color: var(--g-text-dim);
+}
+
+.note__body {
+    font-size: 11px;
+    color: var(--g-text);
+    white-space: normal;
+}
+
+.thread__reply {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-top: 6px;
+}
+
+.thread__input { flex-grow: 1; flex-shrink: 1; min-height: 38px; }
+.thread__input .unity-text-field__input { white-space: normal; }
+
+.brow__menu {
+    flex-shrink: 0;
+    width: 20px;
+    min-width: 20px;
+    height: 17px;
+    margin-left: 2px;
+    padding: 0;
+}

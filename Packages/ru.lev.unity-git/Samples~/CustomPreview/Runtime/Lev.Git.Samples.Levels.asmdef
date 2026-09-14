@@ -1,0 +1,14 @@
+{
+    "name": "Lev.Git.Samples.Levels",
+    "rootNamespace": "Lev.Git.Samples.Levels",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

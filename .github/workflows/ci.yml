@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    name: Tests and translations
+    # Тесты разрабатывались на Windows: пути в проекте тестов и git там такие же, как у пользователей.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tests of the Unity-independent engines
+        working-directory: Packages/ru.lev.unity-git/Tests~/Pure
+        run: dotnet run -c Release
+
+      - name: Every interface string has a translation
+        run: python "Packages/ru.lev.unity-git/Tools~/localization.py" scan

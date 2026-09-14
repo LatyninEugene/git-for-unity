@@ -1,0 +1,27 @@
+{
+    "name": "Lev.Git.Timeline.Editor",
+    "rootNamespace": "Lev.Git.Preview.Timeline",
+    "references": [
+        "Lev.Git.Editor",
+        "Unity.Timeline"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "LEV_GIT_TIMELINE"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.timeline",
+            "expression": "1.0.0",
+            "define": "LEV_GIT_TIMELINE"
+        }
+    ],
+    "noEngineReferences": false
+}

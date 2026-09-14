@@ -1,0 +1,38 @@
+{
+  "name": "ru.lev.unity-git",
+  "version": "1.0.0-alpha.1",
+  "displayName": "Git for Unity",
+  "description": "Git inside the Unity Editor: changes and commits by hunks and lines, semantic diff of scenes and prefabs, object history, conflict resolution by objects and properties, asset previews of every version, LFS locks. Works with any git server; hosting integrations (GitLab) are enabled in Project Settings \u2192 Git.",
+  "unity": "6000.0",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "version control",
+    "vcs",
+    "merge",
+    "diff",
+    "lfs",
+    "gitlab",
+    "scene merge",
+    "prefab"
+  ],
+  "author": {
+    "name": "Lev",
+    "email": "latynineugene@gmail.com",
+    "url": "https://github.com/LatyninEugene"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LatyninEugene/git-for-unity.git"
+  },
+  "documentationUrl": "https://github.com/LatyninEugene/git-for-unity/blob/main/Packages/ru.lev.unity-git/README.md",
+  "changelogUrl": "https://github.com/LatyninEugene/git-for-unity/blob/main/Packages/ru.lev.unity-git/CHANGELOG.md",
+  "licensesUrl": "https://github.com/LatyninEugene/git-for-unity/blob/main/LICENSE",
+  "samples": [
+    {
+      "displayName": "Custom Change Preview",
+      "description": "How to show changes of your own asset type: a change describer, a presenter that draws the asset and a loader for a custom file format.",
+      "path": "Samples~/CustomPreview"
+    }
+  ]
+}

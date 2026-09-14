@@ -1,0 +1,57 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! The fastest way to a fix is a problem report:
+        in Unity, **Help → Git for Unity → Report a Problem…** → save the zip and attach it below.
+        Tokens and passwords are always removed from it; paths and server addresses can be hidden.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Window → Git
+        2. …
+    validations:
+      required: false
+  - type: textarea
+    id: report
+    attributes:
+      label: Problem report
+      description: Drag the zip from Help → Git for Unity → Report a Problem… here. Screenshots are welcome too.
+    validations:
+      required: false
+  - type: input
+    id: package
+    attributes:
+      label: Git for Unity version
+      placeholder: 1.0.0-alpha.1
+    validations:
+      required: true
+  - type: input
+    id: unity
+    attributes:
+      label: Unity version
+      placeholder: 6000.3.10f1
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - Linux
+        - Other
+    validations:
+      required: true

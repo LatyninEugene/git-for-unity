@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Тесты чистой логики пакета: слияние YAML, разбор сцен, diff, подсветка,
+    локализация. Эти файлы от Unity не зависят и собираются обычным dotnet.
+    Папка с «~» Unity не импортирует, в Asset Store она не попадает.
+
+    Запуск: dotnet run -c Release
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>9.0</LangVersion>
+    <AssemblyName>LevGit.PureTests</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Editor\UnityYaml.cs" />
+    <Compile Include="..\..\Editor\UnityScene.cs" />
+    <Compile Include="..\..\Editor\YamlMerge.cs" />
+    <Compile Include="..\..\Editor\MergeValidator.cs" />
+    <Compile Include="..\..\Editor\GitMergeState.cs" />
+    <Compile Include="..\..\Editor\SceneDiff.cs" />
+    <Compile Include="..\..\Editor\PrefabOverrides.cs" />
+    <Compile Include="..\..\Editor\SceneMergeOutline.cs" />
+    <Compile Include="..\..\Editor\YamlRevert.cs" />
+    <Compile Include="..\..\Editor\Preview\AssetYaml.cs" />
+    <Compile Include="..\..\Editor\Preview\ImporterMeta.cs" />
+    <Compile Include="..\..\Editor\Preview\TgaDecoder.cs" />
+    <Compile Include="..\..\Editor\Preview\ValueFormat.cs" />
+    <Compile Include="..\..\Editor\Preview\SceneDocText.cs" />
+    <Compile Include="..\..\Editor\SyntaxHighlight.cs" />
+    <Compile Include="..\..\Editor\TextMerge.cs" />
+    <Compile Include="..\..\Editor\Localization\L.cs" />
+    <Compile Include="..\..\Editor\Diagnostics\Redactor.cs" />
+    <Compile Include="..\..\Editor\GitExitCodes.cs" />
+    <Compile Include="..\..\Editor\GitOutput.cs" />
+    <Compile Include="..\..\Editor\SshOutput.cs" />
+    <Compile Include="..\..\Editor\GitTimeline.cs" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+
+</Project>
